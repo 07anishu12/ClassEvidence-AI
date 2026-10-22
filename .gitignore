@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+prisma/generated/
+.private/
+worker/.venv/
+*.egg-info/
+__pycache__/
+*.py[cod]

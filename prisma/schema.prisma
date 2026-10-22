@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SourceKind {
+  URL
+  UPLOAD
+}
+
+enum EvidenceModality {
+  AUDIO
+  TRANSCRIPT
+  VIDEO
+  METADATA
+}
+
+enum EvidenceImpact {
+  POSITIVE
+  NEGATIVE
+  NEUTRAL
+  NOT_ASSESSABLE
+}
+
+enum QualityLabel {
+  POOR
+  AVERAGE
+  GOOD
+  EXCELLENT
+}
+
+model AssessmentJob {
+  id             String            @id @default(cuid())
+  sourceKind     SourceKind        @default(URL)
+  sourceRef      String            @db.Text
+  status         JobStatus         @default(QUEUED)
+  progress       Int               @default(0)
+  stage          String?
+  errorCode      String?
+  errorMessage   String?           @db.Text
+  heartbeatAt    DateTime?
+  leaseUntil     DateTime?
+  retryCount     Int               @default(0)
+  idempotencyKey String?           @unique
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  events         ProcessingEvent[]
+  report         AssessmentReport?
+
+  @@index([status, updatedAt])
+}
+
+model ProcessingEvent {
+  id        String        @id @default(cuid())
+  jobId     String
+  eventType String
+  message   String        @db.Text
+  metadata  Json?
+  createdAt DateTime      @default(now())
+  job       AssessmentJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, createdAt])
+}
+
+model RubricVersion {
+  id        String             @id @default(cuid())
+  version   String             @unique
+  weights   Json
+  notes     String?            @db.Text
+  createdAt DateTime           @default(now())
+  reports   AssessmentReport[]
+}
+
+model AssessmentReport {
+  id              String                @id @default(cuid())
+  jobId           String                @unique
+  rubricVersionId String
+  qualityLabel    QualityLabel
+  scorePercent    Int?
+  confidence      Float?
+  limitations     Json
+  recommendations Json
+  createdAt       DateTime              @default(now())
+  job             AssessmentJob         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  rubricVersion   RubricVersion         @relation(fields: [rubricVersionId], references: [id])
+  dimensions      DimensionScore[]
+  observations    EvidenceObservation[]
+}
+
+model DimensionScore {
+  id          String           @id @default(cuid())
+  reportId    String
+  key         String
+  score       Float?
+  rationale   String           @db.Text
+  evidenceIds Json
+  report      AssessmentReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, key])
+}
+
+model EvidenceObservation {
+  id         String           @id @default(cuid())
+  reportId   String
+  evidenceId String           @unique
+  startSec   Float
+  endSec     Float
+  modality   EvidenceModality
+  claim      String           @db.Text
+  evidence   String           @db.Text
+  impact     EvidenceImpact
+  provenance Json
+  report     AssessmentReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId, startSec])
+}

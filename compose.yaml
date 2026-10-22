@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: humaniti_ai
+      POSTGRES_USER: humaniti
+      # Local-only trust auth. Bind the port to loopback and never use this in production.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - humaniti-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U humaniti -d humaniti_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  humaniti-postgres:
