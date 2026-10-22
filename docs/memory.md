@@ -1,6 +1,6 @@
 # PROJECT MEMORY — Humaniti AI
 
-Last updated: 2026-10-23; stage: 02/20; git commit: uncommitted (repository initialized)
+Last updated: 2026-10-23; stage: 02/20; git commit: HEAD (local commit; verify with `git rev-parse HEAD`)
 
 ## Challenge invariants
 
