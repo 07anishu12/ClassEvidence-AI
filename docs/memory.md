@@ -1,6 +1,6 @@
 # PROJECT MEMORY — Humaniti AI
 
-Last updated: 2026-10-23; stage: 02/20; git commit: HEAD (local commit; verify with `git rev-parse HEAD`)
+Last updated: 2026-10-23; stage: 04/20; git commit: uncommitted Stage 04 changes
 
 ## Challenge invariants
 
@@ -11,6 +11,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Stage 02 foundation is runnable: Next.js App Router, strict TypeScript, Tailwind, ESLint, Vitest, Prisma schema/migration, PostgreSQL Compose service, Python worker package, environment validation, and honest API/UI boundaries.
 - API routes exist for health, assessment creation, and assessment retrieval. They validate inputs and return explicit `503` when storage is unconfigured; no fake report is produced.
 - The provider boundary is explicitly blocked until organiser approval. Provider output is evidence-only and schema-validated; it cannot supply the final label.
+- Rubric v0.1 and an evaluation plan now exist. The rubric has five observable dimensions, weights summing to 100, 0–4 anchors, evidence rules, explicit excluded proxies, missing-data rules, and deterministic thresholds.
 - No recordings, transcripts, screenshots, credentials, Drive API credentials, or remote AI services were accessed.
 
 ## Repo map
@@ -22,6 +23,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - `lib/domain/job-state.ts`: deterministic job transition rules.
 - `lib/db/prisma.ts`: lazy Prisma client access.
 - `lib/providers/types.ts`: approved-provider interface, blocked production provider, evidence-output validation.
+- `lib/domain/rubric.ts`: versioned dimensions, anchors, thresholds, evidence requirements, assessability rules, and weighted score calculation.
 - `prisma/`: PostgreSQL schema and reproducible initial SQL migration.
 - `worker/src/humaniti_worker/`: typed, local-only ffprobe metadata probe and CLI.
 - `worker/tests/`: media-type and probe failure/fixture tests.
@@ -34,6 +36,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Sources: validated HTTPS URL or `private://` storage reference; local/private hosts, credentials, fragments, and traversal are rejected.
 - Provider output: bounded evidence observations, limitations, and provider version only; strict JSON schema; no overall label.
 - Reports: exactly four labels, score percentage, rubric version, confidence, limitations, 0–4 dimension scores, evidence IDs, timestamp/modality/provenance, and recommendations.
+- Rubric v0.1: weights 25/25/20/20/10; `Poor <40`, `Average 40–59.99`, `Good 60–79.99`, `Excellent >=80`; final label eligible only when clarity, interaction, and structure are assessed and at least 70% weight is assessable.
 - Database: durable job/event/report/rubric/dimension/evidence tables plus lease, heartbeat, retry, and idempotency fields.
 
 ## Decisions
@@ -44,6 +47,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - No vector database, model training, face/emotion inference, or sample-specific shortcuts in the MVP.
 - Local Compose uses loopback-only PostgreSQL trust authentication for development and is not a production security configuration.
 - The database migration is generated from the current Prisma schema and must be applied only when a real private PostgreSQL instance is available.
+- Rubric anchors and thresholds are hypotheses, not expert-validated facts; no representative recording was inspected in Stage 04 because Stage 03 dataset discovery was not executed.
 
 ## Files changed
 
@@ -53,6 +57,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Persistence: `prisma/schema.prisma`, `prisma/migrations/00000000000000_init/migration.sql`.
 - Worker: `worker/`.
 - Stage docs: `docs/memory.md`, `docs/handoffs/02.md`, `docs/AI_INTERACTION_HISTORY.md`.
+- Rubric/evaluation: `docs/RUBRIC.md`, `docs/EVALUATION_PLAN.md`, `lib/domain/rubric.ts`, `lib/domain/rubric.test.ts`.
 
 ## Verification evidence
 
@@ -66,6 +71,8 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - `worker/.venv/bin/python -m pytest worker/tests` — PASS; 8 tests.
 - `npm run worker:smoke` and Python compileall — PASS.
 - Local production smoke — PASS for honest behavior: health `503` when DB is unconfigured, valid upload job `503` when storage is unavailable, unsafe URL `400`.
+- Stage 04 documentation/domain checks — NOT RUN because the current environment has no installed npm dependencies (`tsc`, `eslint`, `vitest`, `next`, and `prisma` unavailable); user instruction says not to retry these checks in this turn.
+- Static rubric contract checks, required-document checks, memory line limit, secret-pattern scan, and `git diff --check` — PASS on 2026-10-23.
 
 ## Known defects / blockers
 
@@ -73,17 +80,21 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - No real upload storage, Drive connector, media extraction, transcription, semantic provider, queue worker, or final scoring engine exists yet.
 - Organiser approval for remote AI processing, Drive access, sample inventory/labels, retention, and exact deadline timezone remains unresolved.
 - Next build warns that the parent `/Users/anny/Desktop/package-lock.json` is outside this repository; the project build still passes. Remove or configure the unrelated parent lockfile before deployment if the warning persists.
-- No Git identity, commit, remote, or hosted deployment exists.
+- Local Git identity and prior commits exist; no remote repository or hosted deployment exists.
+- Stage 03 handoff is missing; dataset discovery and representative-video inspection remain unverified.
 
 ## Next stage
 
-Prompt 03 should verify this foundation, then implement authorised Drive/local dataset inventory without exposing media, using the existing source and worker contracts. Keep the provider blocked until permission is documented and do not invent labels or sample metadata.
+Prompt 05 should verify the rubric contract, then harden the Prisma schema and transaction-safe durable job state. Before claiming rubric calibration, run the missing Stage 03 Drive/local inventory and inspect only legitimately permitted media.
 
 ## Handoff pointers
 
 - `docs/handoffs/00.md`
 - `docs/handoffs/01.md`
 - `docs/handoffs/02.md`
+- `docs/handoffs/04.md`
+- `docs/RUBRIC.md`
+- `docs/EVALUATION_PLAN.md`
 - `docs/ACCEPTANCE.md`
 - `docs/ASSUMPTIONS.md`
 - `docs/AI_INTERACTION_HISTORY.md`

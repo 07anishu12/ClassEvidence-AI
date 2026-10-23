@@ -47,3 +47,10 @@ Authority order: organiser challenge PDF > organiser instructions/permissions > 
 - Publishing sample media, transcripts, screenshots, or identifiable derived assets.
 - Hardcoding sample-specific grades or expected answers.
 - Adding a vector database or model-training pipeline before a demonstrated need.
+
+## Stage 04 rubric status
+
+- **CONFIRMED as implementation choice:** Rubric v0.1 uses weights 25/25/20/20/10 and score anchors 0–4.
+- **UNVERIFIED hypothesis:** Initial deterministic boundaries are Poor `<40`, Average `40–59.99`, Good `60–79.99`, Excellent `>=80`.
+- **UNVERIFIED hypothesis:** A final label is withheld by the domain layer unless clarity, interaction, and lesson structure are assessable and at least 70% of rubric weight is covered.
+- **BLOCKED:** No representative recording was inspected because Stage 03 dataset discovery and legitimate media access were not executed.

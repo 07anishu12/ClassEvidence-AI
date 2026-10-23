@@ -33,3 +33,8 @@ Stage 01 passes only when every explicit challenge requirement above has an owne
 
 - **PASS:** Next.js/TypeScript typecheck, lint, production build, Vitest, Prisma schema validation/generation, migration equivalence, worker import/compile, worker pytest, Compose configuration, and honest API smoke checks.
 - **PARTIAL:** PostgreSQL migration application is blocked because Docker/PostgreSQL is unavailable; real media processing and semantic provider execution remain intentionally unimplemented until permissions and samples are verified.
+
+## Stage 04 rubric gate
+
+- **PASS:** `docs/RUBRIC.md` and `lib/domain/rubric.ts` define five dimensions, weights summing to 100, observable 0–4 anchors, evidence requirements, excluded proxies, missing-data rules, and deterministic thresholds.
+- **BLOCKED:** Representative recording inspection, empirical calibration, and held-out timestamp audit await the missing Stage 03 dataset-discovery/permission result.
