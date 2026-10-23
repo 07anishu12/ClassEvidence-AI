@@ -15,7 +15,7 @@ function replaceAssessmentLink(id: string) {
   window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
 }
 
-export default function AssessmentForm({ maxBytes = 2147483648, initialId = "", urlEnabled = false, driveEnabled = false }: AssessmentFormProps) {
+export default function AssessmentForm({ maxBytes = 524288000, initialId = "", urlEnabled = false, driveEnabled = false }: AssessmentFormProps) {
   const [draft, setDraft] = useState("");
   const [session, setSession] = useState<PrivateSession | null>(null);
   const [resumeId, setResumeId] = useState(assessmentIdSchema.safeParse(initialId).success ? initialId : "");
@@ -64,7 +64,7 @@ export default function AssessmentForm({ maxBytes = 2147483648, initialId = "", 
   </div>;
 }
 
-function PrivateWorkspace({ session, initialId = "", maxBytes = 2147483648, urlEnabled = false, driveEnabled = false }: AssessmentFormProps & { session: PrivateSession }) {
+function PrivateWorkspace({ session, initialId = "", maxBytes = 524288000, urlEnabled = false, driveEnabled = false }: AssessmentFormProps & { session: PrivateSession }) {
   const [id, setId] = useState(initialId);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [notice, setNotice] = useState("");

@@ -19,7 +19,10 @@ def run_bounded(command: list[str], *, timeout: float, max_output: int = 1_000_0
         resource.setrlimit(resource.RLIMIT_FSIZE, (max_file_bytes, max_file_bytes))
         resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
         resource.setrlimit(resource.RLIMIT_CPU, (math.ceil(timeout * 2), math.ceil(timeout * 2) + 1))
-        resource.setrlimit(resource.RLIMIT_AS, (8 * 1024**3, 8 * 1024**3))
+        try:
+            resource.setrlimit(resource.RLIMIT_AS, (8 * 1024**3, 8 * 1024**3))
+        except (ValueError, OSError):
+            pass
 
     deadline = time.monotonic() + timeout
     with subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,

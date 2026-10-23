@@ -1,20 +1,34 @@
+# Humaniti AI — Local & Self-Hosted Database Service
+#
+# SECURITY INVARIANTS:
+# 1. Loopback Binding: Port 5432 is strictly bound to 127.0.0.1 to prevent LAN/WAN exposure.
+# 2. Authentication: Defaults to trust auth on loopback for seamless local dev.
+#    For hardened self-hosting, supply POSTGRES_PASSWORD in your environment and set
+#    POSTGRES_HOST_AUTH_METHOD=scram-sha-256 (or md5).
+# 3. Zero Secret Leakage: No credentials are hardcoded here.
+
 services:
   db:
     image: postgres:16-alpine
+    container_name: humaniti-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: humaniti_ai
-      POSTGRES_USER: humaniti
-      # Local-only trust auth. Bind the port to loopback and never use this in production.
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: ${POSTGRES_DB:-humaniti_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-humaniti}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-trust}
     ports:
+      # Strictly bound to loopback; never expose unauthenticated database to 0.0.0.0
       - "127.0.0.1:5432:5432"
     volumes:
       - humaniti-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U humaniti -d humaniti_ai"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-humaniti} -d ${POSTGRES_DB:-humaniti_ai}"]
       interval: 5s
       timeout: 5s
       retries: 12
+      start_period: 5s
 
 volumes:
   humaniti-postgres:
+    name: humaniti-postgres-data

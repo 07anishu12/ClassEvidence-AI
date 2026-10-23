@@ -76,19 +76,22 @@ export default function RecordingIntake({ session, maxBytes, urlEnabled, driveEn
       <label htmlFor="recording">Choose your class recording</label>
       <input ref={fileInput} id="recording" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" required disabled={busy}
         onChange={(event) => { setFile(event.target.files?.[0] ?? null); setMessage(""); }} aria-invalid={Boolean(invalidFile)} aria-describedby="file-note file-metadata file-error" />
-      <p id="file-note" className="hint">MP4, MOV or WebM · up to {formatBytes(maxBytes)} · up to 2 hours. Content, codec and duration are checked by the server.</p>
+      <p id="file-note" className="hint">MP4, WebM or MOV · up to {formatBytes(maxBytes)} (500 MB standard limit) · up to 2 hours. Content, codec and duration are checked by the server.</p>
       <p id="file-metadata" className="file-metadata">{file && <><strong>{file.name}</strong><span>{formatBytes(file.size)} · {file.type || "Type not supplied by browser"}</span></>}</p>
       <p id="file-error" className="form-message" role="alert">{invalidFile}</p>
     </div> : <div className={enabled ? "field" : "notice"}>
       <label htmlFor="recording-url">{mode === "drive" ? "Permitted Google Drive file link" : "Permitted recording URL"}</label>
-      <input id="recording-url" type="url" value={url} onChange={(event) => { setUrl(event.target.value); setMessage(""); }} disabled={!enabled || busy} required maxLength={2048} aria-describedby="url-note" />
+      <input id="recording-url" type="url" value={url} onChange={(event) => { setUrl(event.target.value); setMessage(""); }} disabled={!enabled || busy} required maxLength={2048} aria-describedby="url-note" placeholder="https://media.example.test/class-recording.mp4" />
       <p id="url-note" className="hint">{!enabled ? `${mode === "drive" ? "Google Drive" : "Recording URL"} import is disabled on this deployment. Download your permitted recording, then upload the file.` :
         mode === "drive" ? "Use a permitted file link. The configured Drive connector must have access; a sharing link alone may not grant access." :
-          "Use a direct HTTPS video link from a supported host. Web pages, sign-in pages and private network addresses are not supported; the server validates the source."}</p>
+          "Use a direct HTTPS video link from a supported host (MP4/WebM, up to 500 MB). Web pages, sign-in pages and private network addresses are rejected by server security validation."}</p>
       {!enabled && <button type="button" className="secondary" onClick={() => setMode("upload")}>Use file upload</button>}
     </div>}
-    <label className="consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} required disabled={busy || !enabled} /><span>I have permission to process this recording and understand it may contain personal information.</span></label>
-    <p className="hint">Only submit recordings you are permitted to share with this deployment. Your key controls access to its assessments; keep it private. Processing may finish without enough evidence for a label.</p>
+    <label htmlFor="recording-consent" className="consent">
+      <input id="recording-consent" type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} required disabled={busy || !enabled} aria-required="true" aria-describedby="consent-note" />
+      <span>I have permission to process this recording and understand it may contain personal information.</span>
+    </label>
+    <p id="consent-note" className="hint">Privacy invariant: Only submit recordings you are authorized to share. Uploads are processed in private scratch space, never used for model training, and never published to public storage.</p>
     <button className="primary" type="submit" disabled={busy || !enabled || Boolean(invalidFile)}>{busy ? mode === "upload" ? "Sending recording…" : "Submitting link…" : "Assess recording"}<span aria-hidden="true"> ↗</span></button>
     {busy && <p role="status" className="hint">Waiting for the server to accept the recording. No completion estimate is available.</p>}
     <p className="form-message" role="alert">{message}</p>

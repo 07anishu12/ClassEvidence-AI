@@ -12,8 +12,13 @@ export class AssessmentError extends Error {
 }
 export function apiError(error: unknown) {
   const safe = error instanceof AssessmentError ? error : new AssessmentError(503, "service_unavailable", "Assessment storage or processing is unavailable.");
-  return NextResponse.json({ error: { code: safe.code, message: safe.message } }, { status: safe.status,
-    headers: { "Cache-Control": "no-store", ...(safe.status === 429 ? { "Retry-After": "60" } : {}) } });
+  return NextResponse.json(
+    { error: safe.message, code: safe.code, message: safe.message },
+    {
+      status: safe.status,
+      headers: { "Cache-Control": "no-store", ...(safe.status === 429 ? { "Retry-After": "60" } : {}) },
+    },
+  );
 }
 const attempts: number[] = [];
 export function authorize(request: Request, mutation = false) {
@@ -43,16 +48,73 @@ export async function loadAssessment(id: string) {
   if (!job) throw new AssessmentError(404, "job_not_found", "Assessment was not found.");
   return job;
 }
+export function extractIdempotencyKey(request: Request): string | null {
+  const headerKey = request.headers.get("idempotency-key") || request.headers.get("x-idempotency-key");
+  if (!headerKey) return null;
+  const trimmed = headerKey.trim();
+  if (!trimmed || trimmed.length > 256 || !/^[A-Za-z0-9_.:-]+$/.test(trimmed)) {
+    throw new AssessmentError(400, "invalid_idempotency_key", "The idempotency key is invalid.");
+  }
+  return trimmed;
+}
+
 export async function createAssessment(request: Request) {
   authorize(request, true);
   if (request.headers.get("x-recording-consent") !== "true") throw new AssessmentError(400, "consent_required", "Confirm permission to process this recording.");
   const mime = request.headers.get("content-type")?.split(";")[0];
-  if (mime === "application/json") throw new AssessmentError(422, "source_unavailable", "Drive import is not configured. Download a permitted file and upload it privately.");
-  return queuePrivateRecording(request);
+  const headerIdempotencyKey = extractIdempotencyKey(request);
+
+  if (mime === "application/json") {
+    if (headerIdempotencyKey) {
+      const db = database();
+      const existing = await db.assessmentJob.findUnique({ where: { idempotencyKey: headerIdempotencyKey } });
+      if (existing) {
+        return { id: existing.id, status: existing.status.toLowerCase(), reused: true };
+      }
+    }
+    let payloadKey: string | null = null;
+    if (request.body) {
+      try {
+        const text = await request.text();
+        if (text) {
+          const parsed = JSON.parse(text);
+          if (parsed && typeof parsed.idempotencyKey === "string") {
+            const trimmed = parsed.idempotencyKey.trim();
+            if (trimmed && trimmed.length <= 256 && /^[A-Za-z0-9_.:-]+$/.test(trimmed)) {
+              payloadKey = trimmed;
+            }
+          }
+        }
+      } catch {
+        // Malformed JSON or binary data under application/json falls through to source_unavailable
+      }
+    }
+    if (payloadKey) {
+      const db = database();
+      const existing = await db.assessmentJob.findUnique({ where: { idempotencyKey: payloadKey } });
+      if (existing) {
+        return { id: existing.id, status: existing.status.toLowerCase(), reused: true };
+      }
+    }
+    throw new AssessmentError(422, "source_unavailable", "Drive import is not configured. Download a permitted file and upload it privately.");
+  }
+
+  if (headerIdempotencyKey) {
+    const db = database();
+    const existing = await db.assessmentJob.findUnique({ where: { idempotencyKey: headerIdempotencyKey } });
+    if (existing) {
+      return { id: existing.id, status: existing.status.toLowerCase(), reused: true };
+    }
+  }
+
+  return queuePrivateRecording(request, { idempotencyKey: headerIdempotencyKey ?? undefined });
 }
 
 /** Trusted operator boundary: callers must establish consent and source authorization first. */
-export async function queuePrivateRecording(request: Request, checks?: { dataset: true; md5?: string; sha256?: string }) {
+export async function queuePrivateRecording(
+  request: Request,
+  checks?: { dataset?: boolean; md5?: string; sha256?: string; idempotencyKey?: string },
+) {
   const db = database();
   const mime = request.headers.get("content-type")?.split(";")[0];
   const extension = mime === "video/mp4" ? "mp4" : mime === "video/quicktime" ? "mov" : mime === "video/webm" ? "webm" : null;
@@ -82,14 +144,14 @@ export async function queuePrivateRecording(request: Request, checks?: { dataset
       await file.writeFile(chunk.value);
     }
     const contentMatches = extension === "webm" ? head.subarray(0, 4).equals(Buffer.from([26, 69, 223, 163])) : head.subarray(4, 8).toString() === "ftyp";
-    if (!size || !contentMatches || declared && declared !== size || request.signal.aborted || timedOut) {
+    if (!size || !contentMatches || (declared && declared !== size) || request.signal.aborted || timedOut) {
       throw new AssessmentError(415, "invalid_media", "Recording content does not match a supported container.");
     }
     const digest = sha256.digest("hex"), md5Digest = md5.digest("hex");
     if (checks?.md5 && checks.md5 !== md5Digest || checks?.sha256 && checks.sha256 !== digest) {
       throw new AssessmentError(422, "source_integrity_failed", "Recording checksum does not match the source metadata.");
     }
-    const idempotencyKey = checks?.dataset ? `dataset:${digest}` : undefined;
+    const idempotencyKey = checks?.idempotencyKey ?? (checks?.dataset ? `dataset:${digest}` : undefined);
     const data = { sourceKind: "UPLOAD" as const, sourceRef: `private://${name}`, idempotencyKey,
       stage: "queued", events: { create: { eventType: "job.created", message: "Private recording queued for local processing." } } };
     let job;
@@ -127,4 +189,68 @@ export async function getAssessmentReport(id: string) {
   const parsed = coachingReportSchema.safeParse(job.analysis);
   if (!parsed.success) throw new AssessmentError(409, "report_unavailable", "A report is not available yet.");
   return parsed.data;
+}
+
+export async function listAssessments(cursor?: string | null, limit = 20) {
+  const db = database();
+  if (cursor && !/^[A-Za-z0-9_-]{1,100}$/.test(cursor)) {
+    throw new AssessmentError(400, "invalid_cursor", "Invalid pagination cursor.");
+  }
+  const take = Math.min(Math.max(limit, 1), 50);
+  const jobs = await db.assessmentJob.findMany({
+    take: take + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      stage: true,
+      createdAt: true,
+      analysis: true,
+    },
+  });
+
+  const hasMore = jobs.length > take;
+  const items = hasMore ? jobs.slice(0, take) : jobs;
+  const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+  return {
+    assessments: items.map((job) => {
+      let qualityLabel: string | null = null;
+      if (job.analysis && typeof job.analysis === "object" && "qualityLabel" in job.analysis) {
+        qualityLabel =
+          typeof (job.analysis as Record<string, unknown>).qualityLabel === "string"
+            ? ((job.analysis as Record<string, unknown>).qualityLabel as string)
+            : null;
+      }
+      return {
+        id: job.id,
+        status: job.status.toLowerCase(),
+        stage: job.stage,
+        createdAt: job.createdAt.toISOString(),
+        qualityLabel,
+      };
+    }),
+    nextCursor,
+  };
+}
+
+export async function deleteAssessment(id: string) {
+  const db = database();
+  const job = await loadAssessment(id);
+  if (job.status === "QUEUED" || job.status === "PROCESSING") {
+    throw new AssessmentError(409, "invalid_state", "Active assessments cannot be deleted.");
+  }
+  if (job.sourceRef.startsWith("private://")) {
+    const filename = job.sourceRef.slice("private://".length);
+    if (/^[a-f0-9-]{36}\.(mp4|mov|webm)$/.test(filename)) {
+      try {
+        await rm(join(privateMediaRoot(env.PRIVATE_MEDIA_ROOT), filename), { force: true });
+      } catch {
+        // Safe ignoring of filesystem unlinking if file does not exist
+      }
+    }
+  }
+  await db.assessmentJob.delete({ where: { id } });
+  return { ok: true };
 }

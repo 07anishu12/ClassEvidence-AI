@@ -16,18 +16,21 @@ export async function GET() {
         database: "unconfigured",
         provider: env.ASSESSMENT_PROVIDER,
       },
-      { status: 503 },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({
-      status: "ok",
-      service: "humaniti-ai",
-      database: "ok",
-      provider: env.ASSESSMENT_PROVIDER,
-    });
+    return NextResponse.json(
+      {
+        status: "ok",
+        service: "humaniti-ai",
+        database: "ok",
+        provider: env.ASSESSMENT_PROVIDER,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
     return NextResponse.json(
       {
@@ -36,7 +39,7 @@ export async function GET() {
         database: "unavailable",
         provider: env.ASSESSMENT_PROVIDER,
       },
-      { status: 503 },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

@@ -34,5 +34,6 @@ def test_real_silent_video_has_no_invented_transcript(tmp_path: Path) -> None:
     source = tmp_path / "synthetic-silent.mp4"
     subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=c=black:s=160x120:d=1",
                     "-an", "-c:v", "libx264", "-y", str(source)], check=True, capture_output=True, timeout=30)
-    manifest = prepare_recording(source, job_id="job_synthetic", model=tmp_path / "not-needed")
-    assert manifest["artifacts"] == []
+    result = prepare_recording(source, job_id="job_synthetic", model=tmp_path / "not-needed")
+    assert result["manifest"]["artifacts"] == []
+    assert result["hasAudio"] is False

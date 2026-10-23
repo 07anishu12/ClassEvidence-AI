@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jobSchema } from "@/lib/contracts/job";
-import { apiError, authorize, changeAssessment, loadAssessment, AssessmentError } from "@/lib/services/assessment";
+import { apiError, authorize, changeAssessment, deleteAssessment, loadAssessment, AssessmentError } from "@/lib/services/assessment";
 export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
 export async function GET(request: Request, context: Context) {
@@ -38,6 +38,13 @@ export async function PATCH(request: Request, context: Context) {
     const parsed = z.object({ action: z.enum(["cancel", "retry"]) }).strict().safeParse(value);
     if (!parsed.success) throw new AssessmentError(400, "invalid_action", "Choose cancel or retry.");
     await changeAssessment((await context.params).id, parsed.data.action);
+    return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) { return apiError(error); }
+}
+export async function DELETE(request: Request, context: Context) {
+  try {
+    authorize(request, true);
+    await deleteAssessment((await context.params).id);
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) { return apiError(error); }
 }

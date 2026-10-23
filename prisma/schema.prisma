@@ -62,6 +62,7 @@ model AssessmentJob {
   report         AssessmentReport?
 
   @@index([status, updatedAt])
+  @@index([status, leaseUntil])
 }
 
 model ProcessingEvent {
