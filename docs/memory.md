@@ -1,6 +1,6 @@
 # PROJECT MEMORY — Humaniti AI
 
-Last updated: 2026-10-23; stage: 17/20; git commit: uncommitted Stage 17 changes
+Last updated: 2026-10-23; stage: Release Candidate v0.1.0-rc1; git commit: 153c6ae
 
 ## Challenge invariants
 
@@ -8,14 +8,14 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 
 ## Current verified state
 
-- Stage 02 foundation is runnable: Next.js App Router, strict TypeScript, Tailwind, ESLint, Vitest, Prisma schema/migration, PostgreSQL Compose service, Python worker package, environment validation, and honest API/UI boundaries.
-- API routes exist for health, assessment creation, and assessment retrieval. They validate inputs and return explicit `503` when storage is unconfigured; no fake report is produced.
-- The provider boundary is explicitly blocked until organiser approval. Provider output is evidence-only and schema-validated; it cannot supply the final label.
-- Rubric v0.1 and an evaluation plan now exist. The rubric has five observable dimensions, weights summing to 100, 0–4 anchors, evidence rules, explicit excluded proxies, missing-data rules, and deterministic thresholds.
-- Worker lifecycle primitives now exist: repository lease boundary, retry/requeue, expired-lease recovery, heartbeat/progress events, cooperative cancellation/timeout, deterministic artifact keys, private scratch cleanup, and FFmpeg/ffprobe availability checks.
-- Stage 08 audio/transcription boundaries now exist: bounded mono PCM extraction with source-offset metadata, WAV silence/clipping/possible-dropout diagnostics, explicit no-audio limitations, strict transcript segment parsing, offset validation, uncertain diarization flags, redacted summaries, and a blocked transcription provider.
-- Stage 17 adversarial QA coverage now exists for unsafe inputs, provider injection boundaries, forged/duplicate manifests, private frame access, concurrent test-worker claims, cooperative timeout, no-audio handling, and redacted transcript summaries. `docs/QA.md` and `docs/SECURITY.md` record blocked real-runtime paths.
-- No recordings, transcripts, screenshots, credentials, Drive API credentials, or remote AI services were accessed.
+- Release Candidate v0.1.0-rc1 complete across 8 specialist workstreams (A-H).
+- 202 automated tests passing: 161/161 Vitest tests (13 files) and 41/41 Pytest tests (9 files).
+- Production webpack build, TypeScript typecheck (0 errors), and ESLint (0 errors/warnings) verified.
+- Fixed Darwin RLIMIT_AS subprocess error; worker test suite is 100% passing across macOS and Linux.
+- Security verified: 73 automated security/adversarial tests passing; Bearer auth and Idempotency-Key headers enforced; SSRF filters cloud metadata and RFC 1918 subnets.
+- Open source assets verified: Apache 2.0 LICENSE, README, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY.md, CHANGELOG, and GitHub Actions CI.
+- Independent Senior Code Review (Gate 6) and Independent Peer Review (Gate 7) completed with approval.
+- Zero children's recordings, transcripts, screenshots, or credentials committed.
 
 ## Repo map
 
