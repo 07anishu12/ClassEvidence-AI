@@ -1,6 +1,6 @@
 # PROJECT MEMORY — Humaniti AI
 
-Last updated: 2026-10-23; stage: 04/20; git commit: e8c4eac (Stage 04 handoff metadata)
+Last updated: 2026-10-23; stage: 07/20; git commit: uncommitted Stage 07 changes
 
 ## Challenge invariants
 
@@ -12,6 +12,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - API routes exist for health, assessment creation, and assessment retrieval. They validate inputs and return explicit `503` when storage is unconfigured; no fake report is produced.
 - The provider boundary is explicitly blocked until organiser approval. Provider output is evidence-only and schema-validated; it cannot supply the final label.
 - Rubric v0.1 and an evaluation plan now exist. The rubric has five observable dimensions, weights summing to 100, 0–4 anchors, evidence rules, explicit excluded proxies, missing-data rules, and deterministic thresholds.
+- Worker lifecycle primitives now exist: repository lease boundary, retry/requeue, expired-lease recovery, heartbeat/progress events, cooperative cancellation/timeout, deterministic artifact keys, private scratch cleanup, and FFmpeg/ffprobe availability checks.
 - No recordings, transcripts, screenshots, credentials, Drive API credentials, or remote AI services were accessed.
 
 ## Repo map
@@ -24,6 +25,8 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - `lib/db/prisma.ts`: lazy Prisma client access.
 - `lib/providers/types.ts`: approved-provider interface, blocked production provider, evidence-output validation.
 - `lib/domain/rubric.ts`: versioned dimensions, anchors, thresholds, evidence requirements, assessability rules, and weighted score calculation.
+- `worker/src/humaniti_worker/jobs/`: repository protocol, in-memory lifecycle test adapter, worker orchestration, private artifact naming/cleanup, and media-tool checks.
+- `worker/src/humaniti_worker/main.py`, `worker/src/main.py`: safe worker entry points that refuse unconfigured production persistence.
 - `prisma/`: PostgreSQL schema and reproducible initial SQL migration.
 - `worker/src/humaniti_worker/`: typed, local-only ffprobe metadata probe and CLI.
 - `worker/tests/`: media-type and probe failure/fixture tests.
@@ -38,6 +41,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Reports: exactly four labels, score percentage, rubric version, confidence, limitations, 0–4 dimension scores, evidence IDs, timestamp/modality/provenance, and recommendations.
 - Rubric v0.1: weights 25/25/20/20/10; `Poor <40`, `Average 40–59.99`, `Good 60–79.99`, `Excellent >=80`; final label eligible only when clarity, interaction, and structure are assessed and at least 70% weight is assessable.
 - Database: durable job/event/report/rubric/dimension/evidence tables plus lease, heartbeat, retry, and idempotency fields.
+- Worker lifecycle: claim one lease, heartbeat before lease expiry, record bounded progress, retry only explicit retryable failures, requeue expired leases, and clean private scratch space on every exit path.
 
 ## Decisions
 
@@ -48,6 +52,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Local Compose uses loopback-only PostgreSQL trust authentication for development and is not a production security configuration.
 - The database migration is generated from the current Prisma schema and must be applied only when a real private PostgreSQL instance is available.
 - Rubric anchors and thresholds are hypotheses, not expert-validated facts; no representative recording was inspected in Stage 04 because Stage 03 dataset discovery was not executed.
+- The in-memory repository is test/smoke-only; no Python PostgreSQL adapter or durable restart-backed worker run is claimed.
 
 ## Files changed
 
@@ -58,6 +63,7 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Worker: `worker/`.
 - Stage docs: `docs/memory.md`, `docs/handoffs/02.md`, `docs/AI_INTERACTION_HISTORY.md`.
 - Rubric/evaluation: `docs/RUBRIC.md`, `docs/EVALUATION_PLAN.md`, `lib/domain/rubric.ts`, `lib/domain/rubric.test.ts`.
+- Worker lifecycle: `worker/src/humaniti_worker/jobs/`, `worker/src/humaniti_worker/main.py`, `worker/src/main.py`, `worker/tests/test_jobs.py`, `docs/JOBS.md`.
 
 ## Verification evidence
 
@@ -73,6 +79,9 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Local production smoke — PASS for honest behavior: health `503` when DB is unconfigured, valid upload job `503` when storage is unavailable, unsafe URL `400`.
 - Stage 04 documentation/domain checks — NOT RUN because the current environment has no installed npm dependencies (`tsc`, `eslint`, `vitest`, `next`, and `prisma` unavailable); user instruction says not to retry these checks in this turn.
 - Static rubric contract checks, required-document checks, memory line limit, secret-pattern scan, and `git diff --check` — PASS on 2026-10-23.
+- Worker compile/import smoke — PASS: `python3 -B -m compileall`, `python3 -m humaniti_worker.main --smoke`, and `python3 -m main --smoke`.
+- Direct worker lifecycle smoke — PASS: retry/requeue, expired-lease reclaim, progress, completion, and deterministic artifact path.
+- Media tool check — BLOCKED as expected: `--check-tools` returned exit 2 because `ffmpeg` and `ffprobe` are unavailable.
 
 ## Known defects / blockers
 
@@ -82,10 +91,11 @@ Build a hosted app that genuinely processes an unseen online-class recording, as
 - Next build warns that the parent `/Users/anny/Desktop/package-lock.json` is outside this repository; the project build still passes. Remove or configure the unrelated parent lockfile before deployment if the warning persists.
 - Local Git identity and prior commits exist; no remote repository or hosted deployment exists.
 - Stage 03 handoff is missing; dataset discovery and representative-video inspection remain unverified.
+- Stage 06 handoff is missing; secure media intake/private-storage integration remains unverified.
 
 ## Next stage
 
-Prompt 05 should verify the rubric contract, then harden the Prisma schema and transaction-safe durable job state. Before claiming rubric calibration, run the missing Stage 03 Drive/local inventory and inspect only legitimately permitted media.
+Prompt 08 should verify this lifecycle foundation, then add bounded mono-audio extraction and transcription behind the existing worker/repository boundaries. Install FFmpeg and ffprobe in the active runtime before claiming real media completion. Keep the production repository adapter explicit and do not substitute the in-memory test adapter.
 
 ## Handoff pointers
 
@@ -93,8 +103,10 @@ Prompt 05 should verify the rubric contract, then harden the Prisma schema and t
 - `docs/handoffs/01.md`
 - `docs/handoffs/02.md`
 - `docs/handoffs/04.md`
+- `docs/handoffs/07.md`
 - `docs/RUBRIC.md`
 - `docs/EVALUATION_PLAN.md`
+- `docs/JOBS.md`
 - `docs/ACCEPTANCE.md`
 - `docs/ASSUMPTIONS.md`
 - `docs/AI_INTERACTION_HISTORY.md`

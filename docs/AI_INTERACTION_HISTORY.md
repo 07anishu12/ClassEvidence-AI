@@ -25,3 +25,11 @@ This file records relevant development interactions without secrets, credentials
 - **Decisions recorded:** Preserve rubric v0.1 weights 25/25/20/20/10; require observable evidence IDs for non-null scores; treat unavailable signals as `not_assessable`; withhold a label below essential-dimension/70%-weight coverage; keep initial thresholds as hypotheses.
 - **Privacy status:** No recordings, transcripts, frames, screenshots, credentials, Drive files, or external AI services were accessed or transmitted.
 - **Verification status:** Static rubric/document validation, secret scan, memory line-limit, and `git diff --check` passed. TypeScript, lint, build, Vitest, Prisma, and worker pytest remain blocked because npm dependencies and the worker virtual environment are absent; the user-provided self-check instructed not to retry those failed commands in this turn.
+
+## 2026-10-23 — Stage 07 worker lifecycle
+
+- **Source:** User-provided Prompt 07/20.
+- **Actions performed:** Verified the available Stage 04 handoff and missing Stage 06 handoff; added repository/lease lifecycle primitives, heartbeat/progress/retry/cancellation/timeout handling, deterministic artifact naming, private cleanup, media-tool checks, worker entry points, lifecycle tests, and `docs/JOBS.md`.
+- **Decisions recorded:** Keep the production persistence adapter behind `JobRepository`; use the in-memory adapter only for tests/smoke; represent cancellation as terminal failed code `cancelled` until the Prisma enum is deliberately extended; use cooperative checkpoints for timeouts.
+- **Privacy status:** No recordings, transcripts, frames, screenshots, credentials, Drive files, or external AI services were accessed or transmitted.
+- **Verification status:** Compile/import smoke and direct lifecycle smoke passed. FFmpeg/ffprobe check is blocked because both tools are unavailable. Pytest and npm checks remain unavailable because the worker virtual environment and Node dependencies are absent.

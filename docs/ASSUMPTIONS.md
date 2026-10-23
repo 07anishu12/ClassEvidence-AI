@@ -54,3 +54,9 @@ Authority order: organiser challenge PDF > organiser instructions/permissions > 
 - **UNVERIFIED hypothesis:** Initial deterministic boundaries are Poor `<40`, Average `40–59.99`, Good `60–79.99`, Excellent `>=80`.
 - **UNVERIFIED hypothesis:** A final label is withheld by the domain layer unless clarity, interaction, and lesson structure are assessable and at least 70% of rubric weight is covered.
 - **BLOCKED:** No representative recording was inspected because Stage 03 dataset discovery and legitimate media access were not executed.
+
+## Stage 07 worker status
+
+- **CONFIRMED as implementation boundary:** Python worker orchestration uses a repository protocol; the in-memory implementation is test/smoke-only and cannot be a production fallback.
+- **CONFIRMED as safety policy:** Cancellation is cooperative and currently records terminal `failed` with error code `cancelled` because the existing Prisma enum has no `CANCELLED` state.
+- **UNVERIFIED:** PostgreSQL transaction-safe claim adapter, real FFmpeg/ffprobe execution, restart-backed processing, and cleanup of actual derived media.

@@ -38,3 +38,8 @@ Stage 01 passes only when every explicit challenge requirement above has an owne
 
 - **PASS:** `docs/RUBRIC.md` and `lib/domain/rubric.ts` define five dimensions, weights summing to 100, observable 0–4 anchors, evidence requirements, excluded proxies, missing-data rules, and deterministic thresholds.
 - **BLOCKED:** Representative recording inspection, empirical calibration, and held-out timestamp audit await the missing Stage 03 dataset-discovery/permission result.
+
+## Stage 07 worker gate
+
+- **PASS:** Worker lifecycle code covers lease claim/recovery, heartbeat/progress, bounded retry, cooperative cancellation/timeout, deterministic artifact naming, private scratch cleanup, and an external-process entry point.
+- **PARTIAL/BLOCKED:** The durable PostgreSQL repository adapter, FFmpeg execution, and completion of a real sample remain unverified because PostgreSQL, FFmpeg/ffprobe, approved media, and the Stage 06 handoff are unavailable.
