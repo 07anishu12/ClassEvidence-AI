@@ -19,6 +19,10 @@ describe("assessment source validation", () => {
     "https://localhost/recording.mp4",
     "https://127.0.0.1/recording.mp4",
     "https://10.0.0.2/recording.mp4",
+    "https://[::1]/recording.mp4",
+    "https://[::ffff:127.0.0.1]/recording.mp4",
+    "https://[fe80::1]/recording.mp4",
+    "https://100.64.0.1/recording.mp4",
     "https://user:password@example.com/recording.mp4",
     "https://example.com/recording.mp4#private-fragment",
   ])("rejects unsafe source URL %s", (url) => {

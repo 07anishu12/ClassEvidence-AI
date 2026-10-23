@@ -1,15 +1,27 @@
 import { z } from "zod";
 
-import { evidenceSchema, type AssessmentCreate } from "../contracts/assessment";
+import { evidenceSchema } from "../contracts/report";
+import { rubricDimensionKeys } from "../domain/rubric";
+import type { ModelInputManifest } from "./manifest";
 
-export type ProviderInput = {
-  jobId: string;
-  source: AssessmentCreate["source"];
-};
+export type ProviderInput = ModelInputManifest;
+
+export const candidateEvidenceSchema = evidenceSchema.safeExtend({
+  dimension: z.enum(rubricDimensionKeys),
+  uncertainty: z.enum(["low", "medium", "high"]),
+});
+
+export const modelRatingSchema = z.union([
+  z.object({ key: z.enum(rubricDimensionKeys), score: z.number().int().min(0).max(4),
+    evidenceIds: z.array(evidenceSchema.shape.id).min(1).max(18) }).strict(),
+  z.object({ key: z.enum(rubricDimensionKeys), score: z.null(),
+    evidenceIds: z.array(evidenceSchema.shape.id).length(0) }).strict(),
+]);
 
 export const providerEvidenceOutputSchema = z
   .object({
-    observations: z.array(evidenceSchema).max(18),
+    observations: z.array(candidateEvidenceSchema).max(18),
+    ratings: z.array(modelRatingSchema).max(5),
     limitations: z.array(z.string().trim().min(1).max(1000)).max(50),
     providerVersion: z.string().trim().min(1).max(100),
   })

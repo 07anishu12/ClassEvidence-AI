@@ -7,18 +7,18 @@ describe("assessment provider boundary", () => {
     await expect(
       blockedProvider.analyze({
         jobId: "job_test",
-        source: { kind: "upload", storageKey: "private://media/fixture" },
+        version: "1", durationSec: 10, artifacts: [],
       }),
     ).rejects.toBeInstanceOf(ProviderBlockedError);
   });
 
   it("validates evidence output without accepting an overall label", () => {
     const output = validateProviderOutput({
-      providerVersion: "local-blocked",
+      providerVersion: "local-blocked", ratings: [],
       limitations: ["No approved semantic provider configured."],
       observations: [
         {
-          id: "evidence_1",
+          id: "evidence_1", dimension: "technical_usability", uncertainty: "high",
           startSec: 2,
           endSec: 4,
           modality: "metadata",

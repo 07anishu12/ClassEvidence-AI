@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from humaniti_worker.process import run_bounded
+
 
 class MediaProbeError(RuntimeError):
     """Base error for safe media probing failures."""
@@ -193,7 +195,7 @@ class MediaProbe:
     """Run a bounded, non-shell ffprobe command and parse JSON metadata."""
 
     def __init__(self, ffprobe_path: str = "ffprobe", timeout_seconds: float = 30.0):
-        if timeout_seconds <= 0:
+        if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
         self._ffprobe_path = ffprobe_path
         self._timeout_seconds = timeout_seconds
@@ -213,27 +215,23 @@ class MediaProbe:
             raise FFProbeUnavailableError("ffprobe is unavailable")
 
         path = Path(media_path)
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
             raise MediaProbeInputError("media input is not a readable regular file")
 
         command = [
             executable,
+            "-protocol_whitelist",
+            "file,pipe",
             "-v",
             "error",
             "-print_format",
             "json",
-            "-show_format",
-            "-show_streams",
+            "-show_entries",
+            "format=format_name,duration,size,bit_rate:stream=index,codec_type,codec_name,duration,width,height,sample_rate,channels",
             str(path),
         ]
         try:
-            completed = subprocess.run(
-                command,
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=self._timeout_seconds,
-            )
+            completed = run_bounded(command, timeout=self._timeout_seconds)
         except FileNotFoundError as exc:
             raise FFProbeUnavailableError("ffprobe is unavailable") from exc
         except PermissionError as exc:
@@ -244,6 +242,8 @@ class MediaProbe:
             raise MediaProbeExecutionError("ffprobe could not be executed") from exc
         except UnicodeError as exc:
             raise MediaProbeOutputError("ffprobe returned undecodable output") from exc
+        except ValueError as exc:
+            raise MediaProbeOutputError("ffprobe output limit exceeded") from exc
         if completed.returncode != 0:
             raise MediaProbeExecutionError(
                 f"ffprobe exited with status {completed.returncode}"
@@ -251,6 +251,6 @@ class MediaProbe:
 
         try:
             payload = json.loads(completed.stdout)
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, UnicodeError) as exc:
             raise MediaProbeOutputError("ffprobe returned malformed JSON") from exc
         return _parse_metadata(payload)

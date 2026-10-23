@@ -220,6 +220,9 @@ export function calculateWeightedScore(
     }
     seen.add(assessment.key);
     dimensionByKey(assessment.key);
+    if (assessment.score !== null && (!Number.isInteger(assessment.score) || assessment.score < 0 || assessment.score > 4)) {
+      throw new Error("Rubric scores must be integer anchors from 0 through 4");
+    }
     if (assessment.score !== null && assessment.evidenceIds.length === 0) {
       throw new Error(`Assessable dimension ${assessment.key} requires evidence IDs`);
     }

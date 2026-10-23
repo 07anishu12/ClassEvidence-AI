@@ -1,0 +1,11 @@
+# Calibration status — Stage 12
+
+No trusted organiser labels, sample reviews or held-out semantic model outputs have been examined. There is no empirical calibration, confusion matrix or claimed accuracy. Synthetic test ratings check arithmetic only; they are not ground truth.
+
+Rubric 0.1 retains the existing five weights (25/25/20/20/10) and integer anchors 0–4. Score = sum(weight × score / 4) / assessable weight × 100, rounded to two decimals. Boundaries: Poor <40, Average [40,60), Good [60,80), Excellent >=80. These are documented hypotheses. No model can override them. Labels require all three essential dimensions and >=70% assessable weight. Otherwise the result is insufficient evidence with no label; missing video/optional signals are never automatically Poor.
+
+Ratings must cite grounded evidence in their own dimension. Duplicate dimensions, out-of-range/fractional scores, duplicate IDs and cross-dimension citations fail validation. Evidence removed by grounding makes its rating unassessable. High uncertainty and bare frame existence do not support a score. Python only prepares media artifacts; TypeScript implements domain scoring.
+
+Confidence is a transparent coverage index, not a probability or guaranteed grade: assessable weight /100 × union of cited time intervals / source duration × mean evidence quality × agreement factor. Low/medium evidence uncertainty maps to 1/0.6, high is excluded. Agreement factor is 0.5 when no independent review exists; with an independently obtained, schema/grounding-validated second review, use mean(1 − absolute rating difference /4) over shared assessed dimensions. Never submit the same output as an independent review. Missing comparison dimensions do not imply agreement. The service defaults to one review; no self-confidence field is accepted from models.
+
+Before changing weights/thresholds: legitimately obtain permitted media, freeze a held-out split by content checksum, blind reviewers to filenames/model predictions, record timestamp audits and independently assigned rubric anchors, resolve disagreements, then evaluate the frozen rules. Only compute a confusion matrix when labels have documented human/organiser provenance. Preserve rubric version and report limitations on every result.

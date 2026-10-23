@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -15,7 +15,9 @@
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "worker:build": "tsc -p tsconfig.worker.json",
+    "worker:run": "npm run worker:build && node .worker-build/scripts/assessment-worker.js"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

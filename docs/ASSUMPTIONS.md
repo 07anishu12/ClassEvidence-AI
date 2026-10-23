@@ -60,3 +60,26 @@ Authority order: organiser challenge PDF > organiser instructions/permissions > 
 - **CONFIRMED as implementation boundary:** Python worker orchestration uses a repository protocol; the in-memory implementation is test/smoke-only and cannot be a production fallback.
 - **CONFIRMED as safety policy:** Cancellation is cooperative and currently records terminal `failed` with error code `cancelled` because the existing Prisma enum has no `CANCELLED` state.
 - **UNVERIFIED:** PostgreSQL transaction-safe claim adapter, real FFmpeg/ffprobe execution, restart-backed processing, and cleanup of actual derived media.
+
+## Stage 08 audio/transcription status
+
+- **CONFIRMED as implementation boundary:** Audio diagnostics report technical limitations and do not convert silence, clipping, or possible dropout into teaching-quality scores.
+- **CONFIRMED as validation policy:** Transcript offsets outside the validated duration are rejected; speaker labels are optional and uncertain when supplied; no speaker is inferred when absent.
+- **BLOCKED:** No real FFmpeg execution, permitted recording, local transcription model, or organiser-approved remote transcription provider is available.
+
+## Stage 17 QA/security status
+
+- **CONFIRMED:** Synthetic adversarial tests must treat transcript/frame content as untrusted data and must not execute or obey embedded instructions.
+- **CONFIRMED:** Unsupported real-runtime results are documented as blocked rather than converted into PASS claims.
+- **OPEN HIGH:** No authentication/ownership layer protects assessment records; no durable HTTP idempotency contract prevents duplicate submission.
+- **BLOCKED:** No permitted 34+ minute recording, corrupt codec sample, PostgreSQL concurrency run, hosted private-storage test, or approved provider is available.
+
+## Stages 10–16 verified update
+
+- CONFIRMED: User directed legitimate sample discovery to the PRD Drive link; folder access and three permitted local downloads succeeded. Source identifiers, historical review names, raw media and transcripts are private. App Drive import remains disabled.
+- CONFIRMED: The discovered PDF is a historical review sheet, not the challenge brief. Its partially incompatible proxies/categories cannot be treated as rubric-0.1 ground truth; Weak is not automatically Poor. No compatible verified labels or human timestamp/claim audits have been supplied.
+- CONFIRMED: FFmpeg/ffprobe and whisper.cpp installed; local speech weights and Qwen3:4b loaded; Ollama bound to loopback with cloud disabled. The pre-existing cloud model was never used. No remote AI approval is inferred from Drive access.
+- CONFIRMED: Isolated development PostgreSQL on port 55432 has both reproducible migrations applied. Local app on configured localhost:3010 and compiled TypeScript worker use generated private credentials in ignored `.env.local`. No production/hosted credentials or deployment are claimed.
+- IMPLEMENTATION POLICY: Uploaded sources/scratch are removed at terminal work; workers expire unfinished jobs after one hour. Independent cleanup scheduling and report/reference deletion policy are required before hosting. In-repo media roots outside ignored `.private` are rejected.
+- CONFIRMED: Final real-case outcomes are two insufficient-evidence and one scoring-validation failure. No completed four-way grade, empirical accuracy or guaranteed quality is demonstrated. Keep the release gate failed rather than weakening evidence requirements.
+- UNVERIFIED: Exact challenge deadline/timezone, hosted behavior, compatible human calibration and semantic correctness. Historic environment blockers in earlier handoffs are superseded only where current commands were actually run.

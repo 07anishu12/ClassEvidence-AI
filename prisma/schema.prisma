@@ -51,6 +51,9 @@ model AssessmentJob {
   errorMessage   String?           @db.Text
   heartbeatAt    DateTime?
   leaseUntil     DateTime?
+  leaseToken     String?
+  cancelRequested Boolean          @default(false)
+  analysis       Json?
   retryCount     Int               @default(0)
   idempotencyKey String?           @unique
   createdAt      DateTime          @default(now())
@@ -87,7 +90,7 @@ model AssessmentReport {
   jobId           String                @unique
   rubricVersionId String
   qualityLabel    QualityLabel
-  scorePercent    Int?
+  scorePercent    Float?
   confidence      Float?
   limitations     Json
   recommendations Json
@@ -113,7 +116,7 @@ model DimensionScore {
 model EvidenceObservation {
   id         String           @id @default(cuid())
   reportId   String
-  evidenceId String           @unique
+  evidenceId String
   startSec   Float
   endSec     Float
   modality   EvidenceModality
@@ -124,4 +127,5 @@ model EvidenceObservation {
   report     AssessmentReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@index([reportId, startSec])
+  @@unique([reportId, evidenceId])
 }

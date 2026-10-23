@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "rubricVersion": "0.1",
+  "synthetic": true,
+  "records": [
+    {
+      "contentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "split": "heldout",
+      "status": "insufficient_evidence",
+      "prediction": null,
+      "reference": null,
+      "durationSec": 10,
+      "observationTimes": [],
+      "timestampAudit": null,
+      "claimAudit": null
+    }
+  ]
+}

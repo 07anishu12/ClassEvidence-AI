@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS", "moduleResolution": "node", "noEmit": false,
+    "outDir": ".worker-build", "rootDir": ".", "incremental": false,
+    "plugins": []
+  },
+  "include": ["scripts/assessment-worker.ts", "scripts/local-model.ts"],
+  "exclude": ["node_modules", ".next", ".worker-build"]
+}

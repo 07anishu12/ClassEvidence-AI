@@ -17,9 +17,18 @@ class MediaTools:
     ffprobe: str
 
 
+def resolve_executable(configured_path: str) -> str | None:
+    candidate = Path(configured_path)
+    if candidate.parent != Path("."):
+        if candidate.is_file() and candidate.stat().st_mode & 0o111:
+            return str(candidate)
+        return None
+    return shutil.which(configured_path)
+
+
 def require_media_tools(ffmpeg_path: str = "ffmpeg", ffprobe_path: str = "ffprobe") -> MediaTools:
-    ffmpeg = shutil.which(ffmpeg_path)
-    ffprobe = shutil.which(ffprobe_path)
+    ffmpeg = resolve_executable(ffmpeg_path)
+    ffprobe = resolve_executable(ffprobe_path)
     missing = [name for name, path in (("ffmpeg", ffmpeg), ("ffprobe", ffprobe)) if path is None]
     if missing:
         raise MediaToolUnavailableError(f"Required media tool unavailable: {', '.join(missing)}")

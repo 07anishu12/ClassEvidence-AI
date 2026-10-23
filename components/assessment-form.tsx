@@ -1,89 +1,90 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { assessmentIdSchema, type CreatedAssessment, type PrivateSession } from "./assessment-client";
+import AssessmentHistory from "./assessment-history";
+import AssessmentStatus from "./assessment-status";
+import RecordingIntake from "./recording-intake";
 
-type ApiResponse = {
-  id?: string;
-  status?: string;
-  error?: {
-    code?: string;
-    message?: string;
-  };
-};
+export type AssessmentFormProps = { maxBytes?: number; initialId?: string; urlEnabled?: boolean; driveEnabled?: boolean };
 
-function isApiResponse(value: unknown): value is ApiResponse {
-  return typeof value === "object" && value !== null;
+function replaceAssessmentLink(id: string) {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("assessment", id); else url.searchParams.delete("assessment");
+  url.hash = "";
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
 }
 
-export default function AssessmentForm() {
-  const [url, setUrl] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function AssessmentForm({ maxBytes = 2147483648, initialId = "", urlEnabled = false, driveEnabled = false }: AssessmentFormProps) {
+  const [draft, setDraft] = useState("");
+  const [session, setSession] = useState<PrivateSession | null>(null);
+  const [resumeId, setResumeId] = useState(assessmentIdSchema.safeParse(initialId).success ? initialId : "");
+  const [message, setMessage] = useState("");
+  const controller = useRef<AbortController | null>(null);
+  const tokenInput = useRef<HTMLInputElement>(null);
+  useEffect(() => () => controller.current?.abort(), []);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const lock = useCallback((reason = "Workspace locked. Private data has been cleared from this page.") => {
+    controller.current?.abort();
+    controller.current = null;
+    setSession(null); setDraft(""); setResumeId(""); setMessage(reason);
+    replaceAssessmentLink("");
+    tokenInput.current?.focus();
+  }, []);
+
+  function unlock(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSubmitting(true);
-    setMessage(null);
-
-    try {
-      const response = await fetch("/api/assessments", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ source: { kind: "url", url } }),
-      });
-      const body: unknown = await response.json();
-
-      if (!isApiResponse(body)) {
-        setMessage("The assessment service returned an invalid response.");
-        return;
-      }
-
-      if (!response.ok) {
-        setMessage(body.error?.message ?? "The assessment request could not be created.");
-        return;
-      }
-
-      setMessage(`Request ${body.id ?? "created"} is ${body.status ?? "queued"}. No report has been generated.`);
-    } catch {
-      setMessage("The assessment service could not be reached.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (session) return;
+    const token = draft.trim();
+    if (token.length < 32 || token.length > 256) { setMessage("Enter the personal access key provided by the app owner (32–256 characters)."); return; }
+    controller.current?.abort();
+    const next = new AbortController(); controller.current = next;
+    setSession({ token, signal: next.signal, onUnauthorized: () => lock("Access key was not accepted. Unlock with a valid personal key.") });
+    setMessage("");
   }
 
-  return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-200" htmlFor="source-url">
-          Permitted recording URL
-        </label>
-        <input
-          id="source-url"
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
-          type="url"
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          placeholder="https://example.com/permitted-recording"
-          required
-          maxLength={2048}
-          autoComplete="url"
-        />
-        <p className="text-sm leading-6 text-slate-400">
-          HTTPS URLs only. The server rejects credentials, local/private hosts, fragments, and unsupported input.
-        </p>
+  return <div className="assessment-flow" id="assess">
+    <form className="intake-form unlock-form" onSubmit={unlock} aria-labelledby="unlock-title">
+      <h2 id="unlock-title">Your private workspace</h2>
+      <p className="muted">No account sign-in. Use the personal access key supplied by the app owner to submit recordings and open your history.</p>
+      <div className="field"><label htmlFor="access-token">Personal access key</label>
+        <input ref={tokenInput} id="access-token" type="password" value={draft} onChange={(event) => {
+          if (session) lock("Key changed. Unlock to load its workspace.");
+          setDraft(event.target.value);
+        }} autoComplete="off" autoCapitalize="none" spellCheck={false} required minLength={32} maxLength={256} aria-describedby="token-note" />
+        <p id="token-note" className="hint">Kept in memory only, never in the URL or browser storage. Nothing loads until you choose Unlock. Refreshing requires your key again.</p>
       </div>
-
-      <button
-        className="rounded-lg bg-cyan-400 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
-        type="submit"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Creating job…" : "Create assessment job"}
-      </button>
-
-      <p className="min-h-6 text-sm leading-6 text-slate-300" aria-live="polite">
-        {message}
-      </p>
+      <div className="status-actions">{session ? <button type="button" className="secondary" onClick={() => lock()}>Lock &amp; clear</button> :
+        <button type="submit" className="primary">Unlock workspace</button>}
+        <span className="hint">{session ? "Workspace unlocked for this key." : resumeId ? "Unlock to open the linked assessment." : "Have no key? Explore the synthetic demo above."}</span>
+      </div>
+      <p role="status" className="form-message">{message}</p>
     </form>
-  );
+    {session && <PrivateWorkspace session={session} initialId={resumeId} maxBytes={maxBytes} urlEnabled={urlEnabled} driveEnabled={driveEnabled} />}
+  </div>;
+}
+
+function PrivateWorkspace({ session, initialId = "", maxBytes = 2147483648, urlEnabled = false, driveEnabled = false }: AssessmentFormProps & { session: PrivateSession }) {
+  const [id, setId] = useState(initialId);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const [notice, setNotice] = useState("");
+  const selectedId = useRef(initialId);
+  const refreshHistory = useCallback(() => setHistoryVersion((n) => n + 1), []);
+  function select(nextId: string) { selectedId.current = nextId; setId(nextId); setNotice(""); replaceAssessmentLink(nextId); }
+  function accepted(created: CreatedAssessment) {
+    select(created.id);
+    setNotice(created.reused ? "This recording already has an assessment. Opened the existing assessment." : "Recording accepted. Keep the assessment link to return later with your key.");
+    refreshHistory();
+  }
+  return <>
+    <AssessmentHistory key={historyVersion} session={session} selectedId={id} onSelect={select} onDeleted={(deletedId) => {
+      if (selectedId.current === deletedId) select("");
+      setNotice("Assessment deleted.");
+    }} />
+    <RecordingIntake session={session} maxBytes={maxBytes} urlEnabled={urlEnabled} driveEnabled={driveEnabled} onAccepted={accepted} />
+    <p className="workspace-message" role="status">{notice}</p>
+    {id && <AssessmentStatus key={id} id={id} session={session} onTerminal={refreshHistory} onRetry={() => {
+      select(""); document.getElementById("recording")?.focus();
+    }} />}
+  </>;
 }

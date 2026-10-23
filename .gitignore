@@ -14,3 +14,5 @@ worker/.venv/
 *.egg-info/
 __pycache__/
 *.py[cod]
+
+.worker-build/
