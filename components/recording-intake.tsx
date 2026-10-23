@@ -52,9 +52,17 @@ export default function RecordingIntake({ session, maxBytes, urlEnabled, driveEn
     submitting.current = true; setBusy(true); setMessage("");
     try {
       const contentType = mode === "upload" ? videoTypes[file!.name.split(".").at(-1)!.toLowerCase()] : "application/json";
+      const idempotencyKey = mode === "upload"
+        ? `file:${encodeURIComponent(file!.name)}:${file!.size}:${file!.lastModified}`
+        : `url:${encodeURIComponent(url.trim())}`;
       const created = await assessmentRequest("/api/assessments", session, createdAssessmentSchema, {
-        method: "POST", headers: { "content-type": contentType, "x-recording-consent": "true" },
-        body: mode === "upload" ? file : JSON.stringify({ url: url.trim() }),
+        method: "POST",
+        headers: {
+          "content-type": contentType,
+          "x-recording-consent": "true",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: mode === "upload" ? file : JSON.stringify({ url: url.trim(), idempotencyKey }),
       });
       if (session.signal.aborted) return;
       setFile(null); setUrl(""); setConsent(false);

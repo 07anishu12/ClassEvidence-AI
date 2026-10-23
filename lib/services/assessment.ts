@@ -217,11 +217,17 @@ export async function listAssessments(cursor?: string | null, limit = 20) {
   return {
     assessments: items.map((job) => {
       let qualityLabel: string | null = null;
-      if (job.analysis && typeof job.analysis === "object" && "qualityLabel" in job.analysis) {
-        qualityLabel =
-          typeof (job.analysis as Record<string, unknown>).qualityLabel === "string"
-            ? ((job.analysis as Record<string, unknown>).qualityLabel as string)
-            : null;
+      if (job.analysis && typeof job.analysis === "object") {
+        const analysis = job.analysis as Record<string, unknown>;
+        if (typeof analysis.qualityLabel === "string") {
+          qualityLabel = analysis.qualityLabel;
+        } else if (
+          analysis.report &&
+          typeof analysis.report === "object" &&
+          typeof (analysis.report as Record<string, unknown>).qualityLabel === "string"
+        ) {
+          qualityLabel = (analysis.report as Record<string, unknown>).qualityLabel as string;
+        }
       }
       return {
         id: job.id,

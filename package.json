@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "worker:smoke": "PYTHONPATH=worker/src python3 -m humaniti_worker --smoke",
-    "worker:test": "python3 -m pytest worker/tests",
+    "worker:test": "if [ -x worker/.venv/bin/pytest ]; then worker/.venv/bin/pytest worker/tests; else python3 -m pytest worker/tests; fi",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
